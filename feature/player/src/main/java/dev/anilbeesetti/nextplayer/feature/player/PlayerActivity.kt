@@ -44,6 +44,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
@@ -350,7 +351,7 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             setOrientation()
-            applyVideoZoom(videoZoom = playerPreferences.playerVideoZoom, showInfo = false)
+            applyVideoZoom(videoZoom = playerPreferences.playerVideoZoom)
             mediaController?.currentMediaItem?.mediaId?.let {
                 applyVideoScale(videoScale = viewModel.getVideoState(it)?.videoScale ?: 1f)
             }
@@ -429,6 +430,7 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
@@ -635,13 +637,13 @@ class PlayerActivity : AppCompatActivity() {
         }
         videoZoomButton.setOnClickListener {
             val videoZoom = playerPreferences.playerVideoZoom.next()
-            applyVideoZoom(videoZoom = videoZoom, showInfo = true)
+            changeAndSaveVideoZoom(videoZoom = videoZoom)
         }
 
         videoZoomButton.setOnLongClickListener {
             VideoZoomOptionsDialogFragment(
                 currentVideoZoom = playerPreferences.playerVideoZoom,
-                onVideoZoomOptionSelected = { applyVideoZoom(videoZoom = it, showInfo = true) },
+                onVideoZoomOptionSelected = { changeAndSaveVideoZoom(videoZoom = it) },
             ).show(supportFragmentManager, "VideoZoomOptionsDialog")
             true
         }
@@ -656,7 +658,7 @@ class PlayerActivity : AppCompatActivity() {
                 Toast.makeText(this, coreUiR.string.enable_pip_from_settings, Toast.LENGTH_SHORT).show()
                 try {
                     Intent("android.settings.PICTURE_IN_PICTURE_SETTINGS").apply {
-                        data = Uri.parse("package:$packageName")
+                        data = "package:$packageName".toUri()
                         startActivity(this@apply)
                     }
                 } catch (e: Exception) {
@@ -815,7 +817,6 @@ class PlayerActivity : AppCompatActivity() {
 
         override fun onVideoSizeChanged(videoSize: VideoSize) {
             super.onVideoSizeChanged(videoSize)
-            applyVideoZoom(videoZoom = playerPreferences.playerVideoZoom, showInfo = false)
             if (videoSize.width != 0 && videoSize.height != 0) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isPipSupported) {
                     updatePictureInPictureParams()
@@ -824,6 +825,7 @@ class PlayerActivity : AppCompatActivity() {
             }
             lifecycleScope.launch {
                 val videoScale = mediaController?.currentMediaItem?.mediaId?.let { viewModel.getVideoState(it)?.videoScale } ?: 1f
+                applyVideoZoom(videoZoom = playerPreferences.playerVideoZoom)
                 applyVideoScale(videoScale = videoScale)
             }
         }
@@ -859,7 +861,6 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
-            println("HELLO: $playbackState")
             super.onPlaybackStateChanged(playbackState)
             when (playbackState) {
                 Player.STATE_ENDED, Player.STATE_IDLE -> {
@@ -1134,20 +1135,6 @@ class PlayerActivity : AppCompatActivity() {
         binding.topInfoLayout.visibility = View.GONE
     }
 
-    private fun resetExoContentFrameWidthAndHeight() {
-        exoContentFrameLayout.layoutParams.width = LayoutParams.MATCH_PARENT
-        exoContentFrameLayout.layoutParams.height = LayoutParams.MATCH_PARENT
-        exoContentFrameLayout.scaleX = 1.0f
-        exoContentFrameLayout.scaleY = 1.0f
-        exoContentFrameLayout.requestLayout()
-    }
-
-    private fun applyVideoScale(videoScale: Float) {
-        exoContentFrameLayout.scaleX = videoScale
-        exoContentFrameLayout.scaleY = videoScale
-        exoContentFrameLayout.requestLayout()
-    }
-
     private fun updateKeepScreenOnFlag() {
         if (mediaController?.isPlaying == true) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -1156,11 +1143,21 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    private fun applyVideoZoom(videoZoom: VideoZoom, showInfo: Boolean) {
-        viewModel.setVideoZoom(videoZoom)
-        mediaController?.currentMediaItem?.mediaId?.let {
-            viewModel.updateMediumZoom(uri = it, zoom = 1f)
-        }
+    private fun applyVideoScale(videoScale: Float) {
+        exoContentFrameLayout.scaleX = videoScale
+        exoContentFrameLayout.scaleY = videoScale
+        exoContentFrameLayout.requestLayout()
+    }
+
+    private fun resetExoContentFrameWidthAndHeight() {
+        exoContentFrameLayout.layoutParams.width = LayoutParams.MATCH_PARENT
+        exoContentFrameLayout.layoutParams.height = LayoutParams.MATCH_PARENT
+        exoContentFrameLayout.scaleX = 1.0f
+        exoContentFrameLayout.scaleY = 1.0f
+        exoContentFrameLayout.requestLayout()
+    }
+
+    private fun applyVideoZoom(videoZoom: VideoZoom) {
         resetExoContentFrameWidthAndHeight()
         when (videoZoom) {
             VideoZoom.BEST_FIT -> {
@@ -1188,13 +1185,21 @@ class PlayerActivity : AppCompatActivity() {
                 videoZoomButton.setImageDrawable(this, coreUiR.drawable.ic_width_wide)
             }
         }
-        if (showInfo) {
-            lifecycleScope.launch {
-                binding.infoLayout.visibility = View.VISIBLE
-                binding.infoText.text = getString(videoZoom.nameRes())
-                delay(HIDE_DELAY_MILLIS)
-                binding.infoLayout.visibility = View.GONE
-            }
+    }
+
+    private fun changeAndSaveVideoZoom(videoZoom: VideoZoom) {
+        applyVideoZoom(videoZoom)
+        viewModel.setVideoZoom(videoZoom)
+
+        mediaController?.currentMediaItem?.mediaId?.let {
+            viewModel.updateMediumZoom(uri = it, zoom = 1f)
+        }
+
+        lifecycleScope.launch {
+            binding.infoLayout.visibility = View.VISIBLE
+            binding.infoText.text = getString(videoZoom.nameRes())
+            delay(HIDE_DELAY_MILLIS)
+            binding.infoLayout.visibility = View.GONE
         }
     }
 
@@ -1210,7 +1215,7 @@ class PlayerActivity : AppCompatActivity() {
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-fun createPipAction(
+private fun createPipAction(
     context: Context,
     title: String,
     @DrawableRes icon: Int,
