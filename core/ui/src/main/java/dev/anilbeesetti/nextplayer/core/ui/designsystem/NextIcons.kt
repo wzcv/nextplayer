@@ -3,9 +3,7 @@ package dev.anilbeesetti.nextplayer.core.ui.designsystem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.CompareArrows
-import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AppSettingsAlt
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
@@ -16,7 +14,6 @@ import androidx.compose.material.icons.rounded.CenterFocusStrong
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ClosedCaption
-import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Contrast
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Dashboard
@@ -50,7 +47,6 @@ import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Replay10
 import androidx.compose.material.icons.rounded.ResetTv
 import androidx.compose.material.icons.rounded.ScreenRotationAlt
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.SmartButton
@@ -65,6 +61,11 @@ import androidx.compose.material.icons.rounded.Title
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.Update
+import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.automirrored.rounded.Sort
 
 object NextIcons {
     val Appearance = Icons.Rounded.Palette
@@ -130,5 +131,6 @@ object NextIcons {
     val WebDav = Icons.Rounded.Cloud
     val Add = Icons.Rounded.Add
     val Search = Icons.Rounded.Search
+    val MoreVert = Icons.Rounded.MoreVert
     val Sort = Icons.AutoMirrored.Rounded.Sort
 }

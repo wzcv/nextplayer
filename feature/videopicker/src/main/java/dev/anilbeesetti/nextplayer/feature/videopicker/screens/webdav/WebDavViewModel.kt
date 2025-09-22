@@ -4,30 +4,25 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.anilbeesetti.nextplayer.core.model.WebDavServer
-import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class TestConnectionResult(
     val isSuccess: Boolean,
-    val message: String,
+    val message: String
 )
 
 @HiltViewModel
 class WebDavViewModel @Inject constructor(
-    private val webDavRepository: dev.anilbeesetti.nextplayer.core.data.repository.WebDavRepository,
+    private val webDavRepository: dev.anilbeesetti.nextplayer.core.data.repository.WebDavRepository
 ) : ViewModel() {
 
     val servers: StateFlow<List<WebDavServer>> = webDavRepository.getAllServers()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList(),
+            initialValue = emptyList()
         )
 
     private val _searchQuery = MutableStateFlow("")
@@ -45,7 +40,7 @@ class WebDavViewModel @Inject constructor(
         } else {
             serverList.filter { server ->
                 server.name.contains(query, ignoreCase = true) ||
-                    server.url.contains(query, ignoreCase = true)
+                        server.url.contains(query, ignoreCase = true)
             }
         }
     }
@@ -63,6 +58,19 @@ class WebDavViewModel @Inject constructor(
             try {
                 _isLoading.value = true
                 webDavRepository.addServer(server)
+            } catch (e: Exception) {
+                // Handle error
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun updateServer(server: WebDavServer) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                webDavRepository.updateServer(server)
             } catch (e: Exception) {
                 // Handle error
             } finally {
@@ -91,20 +99,20 @@ class WebDavViewModel @Inject constructor(
                 result.onSuccess { isConnected ->
                     _testConnectionResult.value = TestConnectionResult(
                         isSuccess = isConnected,
-                        message = if (isConnected) "Connection successful!" else "Connection failed",
+                        message = if (isConnected) "Connection successful!" else "Connection failed"
                     )
                     if (isConnected) {
                         // Update server connection status
                         webDavRepository.updateConnectionStatus(
                             server.id,
                             isConnected = true,
-                            lastConnected = System.currentTimeMillis(),
+                            lastConnected = System.currentTimeMillis()
                         )
                     }
                 }.onFailure { exception ->
                     _testConnectionResult.value = TestConnectionResult(
                         isSuccess = false,
-                        message = exception.message ?: "Connection test failed",
+                        message = exception.message ?: "Connection test failed"
                     )
                 }
             } finally {

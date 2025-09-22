@@ -1,35 +1,11 @@
 package dev.anilbeesetti.nextplayer.feature.videopicker.screens.webdav
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -61,6 +37,7 @@ fun WebDavRoute(
         onServerClick = onServerClick,
         onSearchQueryChange = viewModel::updateSearchQuery,
         onAddServer = viewModel::addServer,
+        onUpdateServer = viewModel::updateServer,
         onDeleteServer = viewModel::deleteServer,
         onTestConnection = viewModel::testConnection,
         onClearTestResult = viewModel::clearTestConnectionResult,
@@ -78,11 +55,13 @@ internal fun WebDavScreen(
     onServerClick: (WebDavServer) -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onAddServer: (WebDavServer) -> Unit,
+    onUpdateServer: (WebDavServer) -> Unit,
     onDeleteServer: (String) -> Unit,
     onTestConnection: (WebDavServer) -> Unit,
     onClearTestResult: () -> Unit,
 ) {
     var showAddServerDialog by rememberSaveable { mutableStateOf(false) }
+    var editingServer by remember { mutableStateOf<WebDavServer?>(null) }
 
     Scaffold(
         topBar = {
@@ -173,6 +152,7 @@ internal fun WebDavScreen(
                         WebDavServerItem(
                             server = server,
                             onClick = { onServerClick(server) },
+                            onEdit = { editingServer = server },
                             onDelete = { onDeleteServer(server.id) },
                         )
                     }
@@ -197,6 +177,24 @@ internal fun WebDavScreen(
             isTestingConnection = isLoading,
         )
     }
+
+    editingServer?.let { server ->
+        EditServerDialog(
+            server = server,
+            onDismiss = {
+                editingServer = null
+                onClearTestResult()
+            },
+            onUpdateServer = { updatedServer ->
+                onUpdateServer(updatedServer)
+                editingServer = null
+                onClearTestResult()
+            },
+            onTestConnection = onTestConnection,
+            testConnectionResult = testConnectionResult,
+            isTestingConnection = isLoading,
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -204,9 +202,11 @@ internal fun WebDavScreen(
 fun WebDavServerItem(
     server: WebDavServer,
     onClick: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showOptionsMenu by remember { mutableStateOf(false) }
 
     Card(
         onClick = onClick,
@@ -222,11 +222,8 @@ fun WebDavServerItem(
                 imageVector = NextIcons.WebDav,
                 contentDescription = null,
                 modifier = Modifier.size(40.dp),
-                tint = if (server.isConnected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.outline
-                },
+                tint = if (server.isConnected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outline,
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -252,11 +249,45 @@ fun WebDavServerItem(
                 }
             }
 
-            IconButton(onClick = { showDeleteDialog = true }) {
-                Icon(
-                    imageVector = NextIcons.Delete,
-                    contentDescription = "Delete Server",
-                )
+            Box {
+                IconButton(onClick = { showOptionsMenu = true }) {
+                    Icon(
+                        imageVector = NextIcons.MoreVert,
+                        contentDescription = "Server Options",
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showOptionsMenu,
+                    onDismissRequest = { showOptionsMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        onClick = {
+                            onEdit()
+                            showOptionsMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = NextIcons.Edit,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete") },
+                        onClick = {
+                            showDeleteDialog = true
+                            showOptionsMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = NextIcons.Delete,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                }
             }
         }
     }
