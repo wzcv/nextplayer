@@ -1,14 +1,19 @@
 package dev.anilbeesetti.nextplayer.feature.videopicker.screens.webdav
 
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.anilbeesetti.nextplayer.core.model.WebDavServer
 import dev.anilbeesetti.nextplayer.core.model.WebDavHistory
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
+import dev.anilbeesetti.nextplayer.core.model.WebDavServer
 import javax.inject.Inject
-import androidx.core.net.toUri
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 data class TestConnectionResult(
     val isSuccess: Boolean,
@@ -52,7 +57,7 @@ class WebDavViewModel @Inject constructor(
         } else {
             serverList.filter { server ->
                 server.name.contains(query, ignoreCase = true) ||
-                        server.url.contains(query, ignoreCase = true)
+                    server.url.contains(query, ignoreCase = true)
             }
         }
     }
@@ -164,12 +169,12 @@ class WebDavViewModel @Inject constructor(
      */
     fun createHistoryPlaybackUri(history: WebDavHistory): android.net.Uri? {
         val server = getServerById(history.serverId) ?: return null
-        
+
         return try {
             val serverUrl = server.url.trimEnd('/')
             val serverUri = java.net.URI(serverUrl)
             val serverBasePath = serverUri.path.trimEnd('/')
-            
+
             // If filePath already contains the server's base path, use it directly
             // Otherwise, append it to the server URL
             val finalUrl = if (serverBasePath.isNotEmpty() && history.filePath.startsWith(serverBasePath)) {

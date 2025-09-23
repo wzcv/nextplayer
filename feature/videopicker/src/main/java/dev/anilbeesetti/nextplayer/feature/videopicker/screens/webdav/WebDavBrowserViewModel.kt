@@ -6,19 +6,17 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.anilbeesetti.nextplayer.core.data.repository.WebDavRepository
 import dev.anilbeesetti.nextplayer.core.model.WebDavFile
-import dev.anilbeesetti.nextplayer.core.model.WebDavServer
 import dev.anilbeesetti.nextplayer.core.model.WebDavHistory
+import dev.anilbeesetti.nextplayer.core.model.WebDavServer
+import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 enum class SortType(val displayName: String) {
     NAME("Name"),
@@ -32,7 +30,6 @@ class WebDavBrowserViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _server = MutableStateFlow<WebDavServer?>(null)
-    val server: StateFlow<WebDavServer?> = _server.asStateFlow()
 
     private val _allFiles = MutableStateFlow<List<WebDavFile>>(emptyList())
 
@@ -151,7 +148,7 @@ class WebDavBrowserViewModel @Inject constructor(
     fun addToHistory(file: WebDavFile) {
         viewModelScope.launch {
             val server = _server.value ?: return@launch
-            
+
             val history = WebDavHistory(
                 id = UUID.randomUUID().toString(),
                 serverId = server.id,
@@ -160,15 +157,11 @@ class WebDavBrowserViewModel @Inject constructor(
                 filePath = file.path,
                 fileSize = file.size,
                 lastPlayed = System.currentTimeMillis(),
-                mimeType = file.mimeType
+                mimeType = file.mimeType,
             )
-            
+
             webDavRepository.addHistory(history)
         }
-    }
-
-    fun getServerUrl(): String {
-        return _server.value?.url ?: ""
     }
 
     fun createAuthenticatedUri(filePath: String): android.net.Uri {

@@ -12,14 +12,14 @@ import androidx.room.PrimaryKey
             entity = WebDavServerEntity::class,
             parentColumns = ["id"],
             childColumns = ["serverId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
     indices = [
         Index(value = ["serverId"]),
         Index(value = ["lastPlayed"]),
-        Index(value = ["serverId", "filePath"], unique = true)
-    ]
+        Index(value = ["serverId", "filePath"], unique = true),
+    ],
 )
 data class WebDavHistoryEntity(
     @PrimaryKey

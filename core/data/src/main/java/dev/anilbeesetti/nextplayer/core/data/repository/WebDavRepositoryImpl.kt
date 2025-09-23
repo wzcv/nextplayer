@@ -1,15 +1,15 @@
 package dev.anilbeesetti.nextplayer.core.data.repository
 
 import dev.anilbeesetti.nextplayer.core.data.webdav.SardineWebDavClient
-import dev.anilbeesetti.nextplayer.core.database.dao.WebDavServerDao
 import dev.anilbeesetti.nextplayer.core.database.dao.WebDavHistoryDao
-import dev.anilbeesetti.nextplayer.core.database.mapper.toWebDavServer
-import dev.anilbeesetti.nextplayer.core.database.mapper.toWebDavServerEntity
+import dev.anilbeesetti.nextplayer.core.database.dao.WebDavServerDao
 import dev.anilbeesetti.nextplayer.core.database.mapper.toWebDavHistory
 import dev.anilbeesetti.nextplayer.core.database.mapper.toWebDavHistoryEntity
+import dev.anilbeesetti.nextplayer.core.database.mapper.toWebDavServer
+import dev.anilbeesetti.nextplayer.core.database.mapper.toWebDavServerEntity
 import dev.anilbeesetti.nextplayer.core.model.WebDavFile
-import dev.anilbeesetti.nextplayer.core.model.WebDavServer
 import dev.anilbeesetti.nextplayer.core.model.WebDavHistory
+import dev.anilbeesetti.nextplayer.core.model.WebDavServer
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -99,19 +99,19 @@ class WebDavRepositoryImpl @Inject constructor(
         try {
             // Check if history item already exists for this server and file path
             val existingHistory = webDavHistoryDao.getHistoryItem(history.serverId, history.filePath)
-            
+
             if (existingHistory != null) {
                 // Update existing history with new play time and position
                 val updatedHistory = history.copy(
                     id = existingHistory.id,
-                    lastPlayed = System.currentTimeMillis()
+                    lastPlayed = System.currentTimeMillis(),
                 )
                 webDavHistoryDao.updateHistory(updatedHistory.toWebDavHistoryEntity())
             } else {
                 // Insert new history item
                 webDavHistoryDao.insertHistory(history.toWebDavHistoryEntity())
             }
-            
+
             // Clean up old history to keep database size manageable
             cleanOldHistory()
         } catch (e: Exception) {

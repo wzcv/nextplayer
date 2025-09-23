@@ -4,15 +4,15 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import dev.anilbeesetti.nextplayer.core.database.dao.DirectoryDao
 import dev.anilbeesetti.nextplayer.core.database.dao.MediumDao
-import dev.anilbeesetti.nextplayer.core.database.dao.WebDavServerDao
 import dev.anilbeesetti.nextplayer.core.database.dao.WebDavHistoryDao
+import dev.anilbeesetti.nextplayer.core.database.dao.WebDavServerDao
 import dev.anilbeesetti.nextplayer.core.database.entities.AudioStreamInfoEntity
 import dev.anilbeesetti.nextplayer.core.database.entities.DirectoryEntity
 import dev.anilbeesetti.nextplayer.core.database.entities.MediumEntity
 import dev.anilbeesetti.nextplayer.core.database.entities.SubtitleStreamInfoEntity
 import dev.anilbeesetti.nextplayer.core.database.entities.VideoStreamInfoEntity
-import dev.anilbeesetti.nextplayer.core.database.entities.WebDavServerEntity
 import dev.anilbeesetti.nextplayer.core.database.entities.WebDavHistoryEntity
+import dev.anilbeesetti.nextplayer.core.database.entities.WebDavServerEntity
 
 @Database(
     entities = [

@@ -139,7 +139,7 @@ internal fun WebDavScreen(
                                 contentDescription = "查看历史记录",
                             )
                         }
-                        
+
                         // 添加服务器按钮 - 只在非历史记录模式下显示
                         IconButton(onClick = { showAddServerDialog = true }) {
                             Icon(
@@ -341,8 +341,11 @@ fun WebDavServerItem(
                 imageVector = NextIcons.WebDav,
                 contentDescription = null,
                 modifier = Modifier.size(40.dp),
-                tint = if (server.isConnected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.outline,
+                tint = if (server.isConnected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.outline
+                },
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -378,7 +381,7 @@ fun WebDavServerItem(
 
                 DropdownMenu(
                     expanded = showOptionsMenu,
-                    onDismissRequest = { showOptionsMenu = false }
+                    onDismissRequest = { showOptionsMenu = false },
                 ) {
                     DropdownMenuItem(
                         text = { Text("Edit") },
@@ -389,9 +392,9 @@ fun WebDavServerItem(
                         leadingIcon = {
                             Icon(
                                 imageVector = NextIcons.Edit,
-                                contentDescription = null
+                                contentDescription = null,
                             )
-                        }
+                        },
                     )
                     DropdownMenuItem(
                         text = { Text("Delete") },
@@ -402,9 +405,9 @@ fun WebDavServerItem(
                         leadingIcon = {
                             Icon(
                                 imageVector = NextIcons.Delete,
-                                contentDescription = null
+                                contentDescription = null,
                             )
-                        }
+                        },
                     )
                 }
             }
@@ -470,13 +473,13 @@ fun WebDavHistoryItem(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                
+
                 Text(
                     text = history.serverName,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
-                
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -487,7 +490,7 @@ fun WebDavHistoryItem(
                             color = MaterialTheme.colorScheme.outline,
                         )
                     }
-                    
+
                     Text(
                         text = "• ${formatTimestamp(history.lastPlayed)}",
                         style = MaterialTheme.typography.bodySmall,
@@ -536,7 +539,6 @@ private fun formatFileSize(bytes: Long): String {
     val digitGroups = (log10(bytes.toDouble()) / log10(1024.0)).toInt()
     return String.format("%.1f %s", bytes / 1024.0.pow(digitGroups.toDouble()), units[digitGroups])
 }
-
 
 private fun formatTimestamp(timestamp: Long): String {
     // Simple timestamp formatting - you might want to use a proper date formatter

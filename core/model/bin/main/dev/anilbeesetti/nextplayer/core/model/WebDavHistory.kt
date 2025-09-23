@@ -11,9 +11,7 @@ data class WebDavHistory(
     val filePath: String,
     val fileSize: Long = 0L,
     val lastPlayed: Long = System.currentTimeMillis(),
-    // Video duration in milliseconds
-    val duration: Long = 0L,
-    // Last played position in milliseconds
-    val position: Long = 0L,
+    val duration: Long = 0L, // Video duration in milliseconds
+    val position: Long = 0L, // Last played position in milliseconds
     val mimeType: String? = null,
 )
