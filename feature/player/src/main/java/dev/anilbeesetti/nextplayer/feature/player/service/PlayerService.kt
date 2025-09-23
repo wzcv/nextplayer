@@ -106,6 +106,7 @@ class PlayerService : MediaSessionService() {
                         currentVideoState?.playbackSpeed ?: playerPreferences.defaultPlaybackSpeed,
                     )
                     currentVideoState?.let { state ->
+                        if (mediaSession?.player?.currentPosition != 0L) return@let
                         state.position?.takeIf { playerPreferences.resume == Resume.YES }?.let {
                             mediaSession?.player?.seekTo(it)
                         }
@@ -128,18 +129,22 @@ class PlayerService : MediaSessionService() {
                 -> {
                     val newMediaItem = newPosition.mediaItem
                     if (newMediaItem != null && oldMediaItem != newMediaItem) {
-                        mediaRepository.updateMediumPosition(
-                            uri = oldMediaItem.mediaId,
-                            position = oldPosition.positionMs.takeIf { reason == DISCONTINUITY_REASON_SEEK } ?: C.TIME_UNSET,
-                        )
+                        serviceScope.launch {
+                            mediaRepository.updateMediumPosition(
+                                uri = oldMediaItem.mediaId,
+                                position = oldPosition.positionMs.takeIf { reason == DISCONTINUITY_REASON_SEEK } ?: C.TIME_UNSET,
+                            )
+                        }
                     }
                 }
 
                 DISCONTINUITY_REASON_REMOVE -> {
-                    mediaRepository.updateMediumPosition(
-                        uri = oldMediaItem.mediaId,
-                        position = oldPosition.positionMs,
-                    )
+                    serviceScope.launch {
+                        mediaRepository.updateMediumPosition(
+                            uri = oldMediaItem.mediaId,
+                            position = oldPosition.positionMs,
+                        )
+                    }
                 }
 
                 else -> return
@@ -173,10 +178,12 @@ class PlayerService : MediaSessionService() {
 
             if (playbackState == Player.STATE_READY) {
                 mediaSession?.player?.let {
-                    mediaRepository.updateMediumLastPlayedTime(
-                        uri = it.currentMediaItem?.mediaId ?: return@let,
-                        lastPlayedTime = System.currentTimeMillis(),
-                    )
+                    serviceScope.launch {
+                        mediaRepository.updateMediumLastPlayedTime(
+                            uri = it.currentMediaItem?.mediaId ?: return@launch,
+                            lastPlayedTime = System.currentTimeMillis(),
+                        )
+                    }
                 }
             }
         }
@@ -185,7 +192,16 @@ class PlayerService : MediaSessionService() {
             super.onPlayWhenReadyChanged(playWhenReady, reason)
 
             if (reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM) {
-                mediaSession?.player?.stop()
+                if (mediaSession?.player?.repeatMode != Player.REPEAT_MODE_OFF) {
+                    mediaSession?.player?.seekTo(0)
+                    mediaSession?.player?.play()
+                    return
+                }
+                mediaSession?.run {
+                    player.clearMediaItems()
+                    player.stop()
+                }
+                stopSelf()
             }
         }
     }
@@ -336,7 +352,8 @@ class PlayerService : MediaSessionService() {
                     mediaSession?.run {
                         player.clearMediaItems()
                         player.stop()
-                    } ?: stopSelf()
+                    }
+                    stopSelf()
                     return@future SessionResult(SessionResult.RESULT_SUCCESS)
                 }
 
@@ -473,10 +490,11 @@ class PlayerService : MediaSessionService() {
         mediaItems.map { mediaItem ->
             async {
                 val uri = mediaItem.mediaId.toUri()
-                val mediaState = mediaRepository.getVideoState(uri = mediaItem.mediaId)
+                val video = mediaRepository.getVideoByUri(uri = mediaItem.mediaId)
+                val videoState = mediaRepository.getVideoState(uri = mediaItem.mediaId)
 
-                val title = mediaItem.mediaMetadata.title ?: mediaState?.title ?: getFilenameFromUri(uri)
-                val artwork = mediaState?.thumbnailPath?.toUri() ?: Uri.Builder().apply {
+                val title = mediaItem.mediaMetadata.title ?: video?.nameWithExtension ?: getFilenameFromUri(uri)
+                val artwork = video?.thumbnailPath?.toUri() ?: Uri.Builder().apply {
                     val defaultArtwork = R.drawable.artwork_default
                     scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
                     authority(resources.getResourcePackageName(defaultArtwork))
@@ -484,8 +502,8 @@ class PlayerService : MediaSessionService() {
                     appendPath(resources.getResourceEntryName(defaultArtwork))
                 }.build()
 
-                val externalSubs = mediaState?.externalSubs ?: emptyList()
-                val localSubs = (mediaState?.path ?: getPath(uri))?.let {
+                val externalSubs = videoState?.externalSubs ?: emptyList()
+                val localSubs = (videoState?.path ?: getPath(uri))?.let {
                     File(it).getLocalSubtitles(
                         context = this@PlayerService,
                         excludeSubsList = externalSubs,
