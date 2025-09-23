@@ -66,6 +66,9 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Refresh
 
 object NextIcons {
     val Appearance = Icons.Rounded.Palette
@@ -133,4 +136,7 @@ object NextIcons {
     val Search = Icons.Rounded.Search
     val MoreVert = Icons.Rounded.MoreVert
     val Sort = Icons.AutoMirrored.Rounded.Sort
+    val History = Icons.Rounded.History
+    val Close = Icons.Rounded.Close
+    val Refresh = Icons.Rounded.Refresh
 }

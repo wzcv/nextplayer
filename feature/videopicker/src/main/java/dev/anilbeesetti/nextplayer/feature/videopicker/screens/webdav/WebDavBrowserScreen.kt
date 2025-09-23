@@ -3,16 +3,9 @@ package dev.anilbeesetti.nextplayer.feature.videopicker.screens.webdav
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.EaseInOutCubic
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -81,7 +74,6 @@ fun WebDavBrowserRoute(
     val currentPath by viewModel.currentPath.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val sortType by viewModel.sortType.collectAsStateWithLifecycle()
-    // 移除derivedStateOf，因为canNavigateBack()已经返回了当前状态
 
     LaunchedEffect(serverId) {
         viewModel.loadServer(serverId)
@@ -107,12 +99,9 @@ fun WebDavBrowserRoute(
             if (file.isDirectory) {
                 viewModel.navigateToPath(file.path)
             } else {
-                // Create WebDAV URI for video playback (without embedded credentials)
+                viewModel.addToHistory(file)
                 val uri = viewModel.createAuthenticatedUri(file.path)
-
-                // Get authentication info if available
                 val authInfo = viewModel.getAuthenticationInfo()
-
                 onPlayVideo(uri, authInfo?.first, authInfo?.second)
             }
         },
@@ -151,27 +140,13 @@ internal fun WebDavBrowserScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val pullToRefreshState = rememberPullToRefreshState()
 
-    // 搜索栏展开动效
-    val searchBarHeight by animateDpAsState(
-        targetValue = if (isSearchExpanded) 56.dp else 0.dp,
-        animationSpec = tween(300, easing = EaseInOutCubic),
-        label = "search_bar_height",
-    )
-
-    val searchBarAlpha by animateFloatAsState(
-        targetValue = if (isSearchExpanded) 1f else 0f,
-        animationSpec = tween(300, easing = EaseInOutCubic),
-        label = "search_bar_alpha",
-    )
-
-    // 当搜索展开时自动聚焦
     LaunchedEffect(isSearchExpanded) {
         if (isSearchExpanded) {
-            delay(150) // 等待动画进行一半
+            delay(150)
             searchFocusRequester.requestFocus()
         } else {
             keyboardController?.hide()
-            onSearchQueryChange("") // 清空搜索内容
+            onSearchQueryChange("")
         }
     }
 
@@ -179,12 +154,11 @@ internal fun WebDavBrowserScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    // 动画切换标题和搜索栏
                     AnimatedContent(
                         targetState = isSearchExpanded,
                         transitionSpec = {
-                            slideInHorizontally { width -> -width } + fadeIn() togetherWith
-                                slideOutHorizontally { width -> width } + fadeOut()
+                            fadeIn(animationSpec = tween(200)) togetherWith
+                                fadeOut(animationSpec = tween(200))
                         },
                         label = "title_search_transition",
                     ) { expanded ->
@@ -252,23 +226,32 @@ internal fun WebDavBrowserScreen(
                     }
                 },
                 actions = {
-                    // 搜索按钮
+                    // 搜索按钮 - 添加图标切换动画
                     IconButton(
                         onClick = {
                             isSearchExpanded = !isSearchExpanded
                         },
                     ) {
-                        Icon(
-                            imageVector = if (isSearchExpanded) NextIcons.ArrowBack else NextIcons.Search,
-                            contentDescription = if (isSearchExpanded) "Close Search" else "Search",
-                        )
+                        AnimatedContent(
+                            targetState = isSearchExpanded,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(200)) togetherWith
+                                    fadeOut(animationSpec = tween(200))
+                            },
+                            label = "search_icon_transition",
+                        ) { expanded ->
+                            Icon(
+                                imageVector = if (expanded) NextIcons.ArrowBack else NextIcons.Search,
+                                contentDescription = if (expanded) "Close Search" else "Search",
+                            )
+                        }
                     }
 
-                    // 排序按钮
+                    // 排序按钮 - 同步动画时长
                     AnimatedVisibility(
                         visible = !isSearchExpanded,
-                        enter = fadeIn() + scaleIn(),
-                        exit = fadeOut() + scaleOut(),
+                        enter = fadeIn(animationSpec = tween(200)),
+                        exit = fadeOut(animationSpec = tween(200)),
                     ) {
                         IconButton(onClick = { showSortDialog = true }) {
                             Icon(
@@ -327,7 +310,7 @@ internal fun WebDavBrowserScreen(
                     }
                 }
 
-                files.filter { file -> file.isDirectory || isVideoFile(file) }.isEmpty() -> {
+                files.none { file -> file.isDirectory || isVideoFile(file) } -> {
                     Column(
                         modifier = Modifier
                             .align(Alignment.Center)
@@ -464,7 +447,7 @@ private fun SortDialog(
         title = { Text("Sort by") },
         text = {
             Column {
-                SortType.values().forEach { sortType ->
+                SortType.entries.forEach { sortType ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

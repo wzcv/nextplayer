@@ -7,14 +7,18 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.anilbeesetti.nextplayer.core.data.repository.WebDavRepository
 import dev.anilbeesetti.nextplayer.core.model.WebDavFile
 import dev.anilbeesetti.nextplayer.core.model.WebDavServer
+import dev.anilbeesetti.nextplayer.core.model.WebDavHistory
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 enum class SortType(val displayName: String) {
     NAME("Name"),
@@ -37,6 +41,7 @@ class WebDavBrowserViewModel @Inject constructor(
 
     private val _sortType = MutableStateFlow(SortType.NAME)
     val sortType: StateFlow<SortType> = _sortType.asStateFlow()
+
     val files: StateFlow<List<WebDavFile>> = combine(
         _allFiles,
         _searchQuery,
@@ -141,6 +146,25 @@ class WebDavBrowserViewModel @Inject constructor(
 
     fun updateSortType(sortType: SortType) {
         _sortType.value = sortType
+    }
+
+    fun addToHistory(file: WebDavFile) {
+        viewModelScope.launch {
+            val server = _server.value ?: return@launch
+            
+            val history = WebDavHistory(
+                id = UUID.randomUUID().toString(),
+                serverId = server.id,
+                serverName = server.name,
+                fileName = file.name,
+                filePath = file.path,
+                fileSize = file.size,
+                lastPlayed = System.currentTimeMillis(),
+                mimeType = file.mimeType
+            )
+            
+            webDavRepository.addHistory(history)
+        }
     }
 
     fun getServerUrl(): String {

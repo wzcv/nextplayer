@@ -43,6 +43,9 @@ fun NavGraphBuilder.mediaNavGraph(
             onServerClick = { server ->
                 navController.navigateToWebDavBrowser(server.id)
             },
+            onPlayVideo = { uri, username, password ->
+                context.startPlayerActivityWithWebDav(uri, username, password)
+            },
         )
         webDavBrowserScreen(
             onNavigateUp = navController::navigateUp,

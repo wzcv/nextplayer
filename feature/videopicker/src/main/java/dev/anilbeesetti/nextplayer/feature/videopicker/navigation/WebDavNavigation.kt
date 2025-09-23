@@ -24,11 +24,13 @@ fun NavController.navigateToWebDavBrowser(serverId: String, navOptions: NavOptio
 fun NavGraphBuilder.webDavScreen(
     onNavigateUp: () -> Unit,
     onServerClick: (WebDavServer) -> Unit,
+    onPlayVideo: (Uri, String?, String?) -> Unit,
 ) {
     animatedComposable(route = webDavNavigationRoute) {
         WebDavRoute(
             onNavigateUp = onNavigateUp,
             onServerClick = onServerClick,
+            onPlayVideo = onPlayVideo,
         )
     }
 }

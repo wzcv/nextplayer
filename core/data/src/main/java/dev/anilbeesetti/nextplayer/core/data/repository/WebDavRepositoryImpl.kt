@@ -2,10 +2,14 @@ package dev.anilbeesetti.nextplayer.core.data.repository
 
 import dev.anilbeesetti.nextplayer.core.data.webdav.SardineWebDavClient
 import dev.anilbeesetti.nextplayer.core.database.dao.WebDavServerDao
+import dev.anilbeesetti.nextplayer.core.database.dao.WebDavHistoryDao
 import dev.anilbeesetti.nextplayer.core.database.mapper.toWebDavServer
 import dev.anilbeesetti.nextplayer.core.database.mapper.toWebDavServerEntity
+import dev.anilbeesetti.nextplayer.core.database.mapper.toWebDavHistory
+import dev.anilbeesetti.nextplayer.core.database.mapper.toWebDavHistoryEntity
 import dev.anilbeesetti.nextplayer.core.model.WebDavFile
 import dev.anilbeesetti.nextplayer.core.model.WebDavServer
+import dev.anilbeesetti.nextplayer.core.model.WebDavHistory
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -15,6 +19,7 @@ import timber.log.Timber
 @Singleton
 class WebDavRepositoryImpl @Inject constructor(
     private val webDavServerDao: WebDavServerDao,
+    private val webDavHistoryDao: WebDavHistoryDao,
     private val webDavClient: SardineWebDavClient,
 ) : WebDavRepository {
 
@@ -74,6 +79,78 @@ class WebDavRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Timber.e(e, "WebDAV connection test failed")
             Result.failure(e)
+        }
+    }
+
+    // History management implementation
+    override fun getAllHistory(): Flow<List<WebDavHistory>> {
+        return webDavHistoryDao.getAllHistory().map { entities ->
+            entities.map { it.toWebDavHistory() }
+        }
+    }
+
+    override fun getHistoryByServer(serverId: String): Flow<List<WebDavHistory>> {
+        return webDavHistoryDao.getHistoryByServer(serverId).map { entities ->
+            entities.map { it.toWebDavHistory() }
+        }
+    }
+
+    override suspend fun addHistory(history: WebDavHistory) {
+        try {
+            // Check if history item already exists for this server and file path
+            val existingHistory = webDavHistoryDao.getHistoryItem(history.serverId, history.filePath)
+            
+            if (existingHistory != null) {
+                // Update existing history with new play time and position
+                val updatedHistory = history.copy(
+                    id = existingHistory.id,
+                    lastPlayed = System.currentTimeMillis()
+                )
+                webDavHistoryDao.updateHistory(updatedHistory.toWebDavHistoryEntity())
+            } else {
+                // Insert new history item
+                webDavHistoryDao.insertHistory(history.toWebDavHistoryEntity())
+            }
+            
+            // Clean up old history to keep database size manageable
+            cleanOldHistory()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to add WebDAV history")
+        }
+    }
+
+    override suspend fun updateHistory(history: WebDavHistory) {
+        try {
+            webDavHistoryDao.updateHistory(history.toWebDavHistoryEntity())
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to update WebDAV history")
+        }
+    }
+
+    override suspend fun deleteHistory(id: String) {
+        try {
+            webDavHistoryDao.deleteHistory(id)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to delete WebDAV history")
+        }
+    }
+
+    override suspend fun deleteHistoryByServer(serverId: String) {
+        try {
+            webDavHistoryDao.deleteHistoryByServer(serverId)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to delete WebDAV history for server: $serverId")
+        }
+    }
+
+    override suspend fun cleanOldHistory(maxItems: Int) {
+        try {
+            val count = webDavHistoryDao.getHistoryCount()
+            if (count > maxItems) {
+                webDavHistoryDao.keepRecentHistory(maxItems)
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to clean old WebDAV history")
         }
     }
 }
